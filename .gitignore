@@ -1,0 +1,37 @@
+# Python
+__pycache__/
+*.py[cod]
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# VS Code
+.vscode/
+
+# Logs
+*.log
+
+# Audio
+*.wav
+*.mp3
+voices/
+
+# Models
+model/
+models/
+*.gguf
+*.bin
+*.onnx
+
+# Cache
+.cache/
+.pytest_cache/
+
+# Secrets
+.env
+
+# OS
+Thumbs.db
+desktop.ini
