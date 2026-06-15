@@ -73,7 +73,7 @@ def has_speech(audio_chunk):
     speech_prob = vad_model(audio, SAMPLE_RATE).item()
     
     if speech_prob > 0.5:
-        print(f"VOICE DETECTED (prob: {speech_prob:.2f})")
+        #print(f"VOICE DETECTED (prob: {speech_prob:.2f})")
         return True
     
     return False

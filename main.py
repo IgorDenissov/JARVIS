@@ -1,86 +1,22 @@
 import os
-import requests
+os.environ["PYTHONIOENCODING"] = "utf-8"
 
-# Whisper слушатель
+import traceback
 from core.listener import listen
-
-# Голос
+from core.brain import process, clear_memory
 from jarvis_voice import speak
+import sys
+
+sys.stdout.reconfigure(encoding='utf-8')
 
 
-AI_MODEL = "gemma3:27b"
-OLLAMA_URL = "http://localhost:11434/api/generate"
-
-# История разговора
-conversation_history = []
-MAX_HISTORY = 10
-
-
-def ask_ai(question):
-
-    conversation_history.append(
-        {
-            "role": "user",
-            "content": question
-        }
-    )
-
-    context = "\n".join([
-        f"{'Игорь' if msg['role']=='user' else 'Джарвис'}: {msg['content']}"
-        for msg in conversation_history[-MAX_HISTORY:]
-    ])
-
-    prompt = f"""
-Ты Джарвис, ИИ-ассистент Игоря.
-
-Говори как Джарвис из Железного человека.
-Отвечай кратко: 1–2 предложения.
-Будь полезным, спокойным и умным.
-
-История разговора:
-
-{context}
-
-Ответь на последнее сообщение Игоря.
-"""
-
-    payload = {
-        "model": AI_MODEL,
-        "prompt": prompt,
-        "stream": False
-    }
-
-    try:
-
-        response = requests.post(
-            OLLAMA_URL,
-            json=payload,
-            timeout=120
-        )
-
-        answer = response.json().get(
-            "response",
-            "Сэр, система задумалась."
-        )
-
-        conversation_history.append(
-            {
-                "role": "assistant",
-                "content": answer
-            }
-        )
-
-        if len(conversation_history) > MAX_HISTORY * 2:
-            conversation_history.pop(0)
-            conversation_history.pop(0)
-
-        return answer
-
-    except Exception as e:
-
-        print(f"[ОШИБКА AI] {e}")
-
-        return "Сэр, ядро искусственного интеллекта недоступно."
+WAKE_WORDS = [
+    "джарвис",
+    "жарвис",
+    "арвис",
+    "карвис",
+    "джорес"
+]
 
 
 print("[JARVIS] Инициализация завершена.")
@@ -88,64 +24,54 @@ speak("Все системы в норме. Жду распоряжений.")
 
 
 try:
-
     while True:
 
         text = listen()
-
         if not text:
             continue
 
-        text = text.lower()
-
+        text = text.lower().strip()
         print(f"[ВЫ]: {text}")
 
+        # ───── выключение ─────
         if "отключись" in text:
-
             speak("Сеанс окончен, сэр.")
-            os._exit(0)
+            break
 
-        if (
-            "забудь всё" in text
-            or
-            "очисти память" in text
-        ):
-
-            conversation_history.clear()
-
+        # ───── очистка памяти ─────
+        if "забудь всё" in text or "очисти память" in text:
+            clear_memory()
             speak("Память очищена, сэр.")
             continue
 
+        # ───── активация ассистента ─────
+        if any(w in text for w in WAKE_WORDS):
 
-        if "джарвис" in text:
+            query = text
 
-            query = text.replace(
-                "джарвис",
-                ""
-            ).strip()
+            for w in WAKE_WORDS:
+                query = query.replace(w, "")
+
+            query = query.strip()
 
             if not query:
-
                 speak("Да, сэр?")
                 continue
 
             print("[ДУМАЮ...]")
 
-            answer = ask_ai(query)
+            answer = process(query)
 
             print(f"[ДЖАРВИС]: {answer}")
-
             speak(answer)
 
 
 except KeyboardInterrupt:
-
-    print("\n[ВЫХОД] Остановлено пользователем")
-
+    print("\n[ВЫХОД] Ctrl+C")
     speak("Конец сессии, сэр.")
 
 except Exception as e:
-
-    print(f"[ОШИБКА] {e}")
-
-    speak("Произошла ошибка системы.")
+    print("\n===== ERROR =====")
+    traceback.print_exc()
+    print("=================\n")
+    speak("Произошла критическая ошибка системы.")
