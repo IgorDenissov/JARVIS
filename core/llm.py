@@ -1,7 +1,5 @@
 import requests
-
-
-OLLAMA_URL = "http://localhost:11434/api/generate"
+from config.settings import OLLAMA_URL
 
 
 def ask_llm(model: str, prompt: str, temperature: float = 0.7) -> str:

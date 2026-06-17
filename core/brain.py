@@ -1,11 +1,6 @@
 from core.llm import ask_llm
 from core.tools.registry import run_tool
-
-# ─────────────────────────────
-# МОДЕЛИ
-# ─────────────────────────────
-FAST_MODEL = "qwen2.5:1.5b"
-SMART_MODEL = "qwen2.5:32b"
+from config.settings import FAST_MODEL, SMART_MODEL
 
 # ─────────────────────────────
 # ПАМЯТЬ

@@ -8,11 +8,13 @@ from TTS.tts.configs.xtts_config import XttsConfig
 from TTS.tts.models.xtts import XttsAudioConfig, XttsArgs
 from TTS.config.shared_configs import BaseDatasetConfig
 torch.serialization.add_safe_globals([XttsConfig, XttsAudioConfig, XttsArgs, BaseDatasetConfig])
+from core import state
 
 # Патч: меняем torchaudio.load на soundfile до импорта TTS
 import torchaudio
 import soundfile as sf
 import torch as _torch
+
 
 def patched_load(filepath, *args, **kwargs):
     audio, sr = sf.read(filepath, dtype='float32')
@@ -27,16 +29,7 @@ torchaudio.load = patched_load
 import pygame
 import tempfile
 import time
-
-# ───────────────────────────────────────────────
-# Настройки
-# ───────────────────────────────────────────────
-VOICE_SAMPLE = os.path.join(
-    os.path.dirname(__file__),
-    "voices", "Morgan_Freeman CC3.wav"  # ← твой русский актёр
-)
-LANGUAGE = "ru"
-
+from config.settings import VOICE_SAMPLE, VOICE_LANGUAGE
 # ───────────────────────────────────────────────
 # Инициализация TTS (один раз при импорте)
 # ───────────────────────────────────────────────
@@ -51,16 +44,20 @@ pygame.mixer.init(frequency=22050, size=-16, channels=2, buffer=512)
 
 
 def speak(text: str):
-    """Озвучить текст голосом из VOICE_SAMPLE."""
+
     if not text or not text.strip():
         return
 
+    state.is_speaking = True
+
     temp_file = tempfile.mktemp(suffix=".wav")
+
     try:
+
         tts.tts_to_file(
             text=text,
-            speaker_wav=VOICE_SAMPLE,
-            language=LANGUAGE,
+            speaker_wav=str(VOICE_SAMPLE),
+            language=VOICE_LANGUAGE,
             file_path=temp_file,
         )
 
@@ -72,8 +69,17 @@ def speak(text: str):
             time.sleep(0.05)
 
     finally:
+
+        state.is_speaking = False
+
         pygame.mixer.quit()
-        pygame.mixer.init(frequency=22050, size=-16, channels=2, buffer=512)
+        pygame.mixer.init(
+            frequency=22050,
+            size=-16,
+            channels=2,
+            buffer=512
+        )
+
         if os.path.exists(temp_file):
             try:
                 os.remove(temp_file)
